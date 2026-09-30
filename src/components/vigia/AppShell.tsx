@@ -1,10 +1,29 @@
 import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
-import { Activity, Home, Inbox, Plug } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Activity, Home, Inbox, PanelLeftClose, PanelLeftOpen, Plug } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import { VigiaMark } from "./VigiaMark";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageToggle } from "./LanguageToggle";
+
+function useSidebarCollapsed(): [boolean, () => void] {
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem("vigia-sidebar") === "collapsed";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem("vigia-sidebar", collapsed ? "collapsed" : "expanded");
+    } catch {}
+  }, [collapsed]);
+  return [collapsed, () => setCollapsed((v) => !v)];
+}
 
 const navIcons = { "/": Home, "/approvals": Inbox, "/activity": Activity, "/connections": Plug } as const;
 
@@ -16,6 +35,7 @@ export function AppShell({
   badge?: number;
 }) {
   const { t } = useLanguage();
+  const [collapsed, toggleSidebar] = useSidebarCollapsed();
   const navItems = [
     { to: "/" as const, label: t.nav.today, icon: navIcons["/"] },
     { to: "/approvals" as const, label: t.nav.approvals, icon: navIcons["/approvals"] },
@@ -25,10 +45,15 @@ export function AppShell({
 
   return (
     <div className="min-h-screen lg:flex">
-      <aside className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-sidebar-border bg-sidebar/80 px-4 py-3 backdrop-blur-xl lg:h-screen lg:w-64 lg:flex-col lg:items-stretch lg:justify-start lg:border-r lg:border-b-0 lg:px-5 lg:py-7">
+      <aside
+        className={cn(
+          "sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-sidebar-border bg-sidebar/80 px-4 py-3 backdrop-blur-xl lg:h-screen lg:w-64 lg:flex-col lg:items-stretch lg:justify-start lg:border-r lg:border-b-0 lg:px-5 lg:py-7 transition-[width] duration-300",
+          collapsed && "lg:w-16",
+        )}
+      >
         <Link to="/" className="group flex items-center gap-2.5">
           <VigiaMark className="size-7 transition-transform duration-500 group-hover:rotate-[8deg]" />
-          <span className="flex items-baseline gap-1.5">
+          <span className={cn("flex items-baseline gap-1.5", collapsed && "lg:hidden")}>
             <span className="font-serif text-[1.35rem] leading-none tracking-tight text-foreground">
               Vigia
             </span>
@@ -48,12 +73,19 @@ export function AppShell({
               inactiveProps={{
                 className: "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
               }}
-              className="group flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors"
+              className="group relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors"
+              title={label}
             >
               <Icon className="size-4 shrink-0" strokeWidth={1.75} />
-              <span className="hidden sm:inline">{label}</span>
+              <span className={cn("hidden sm:inline", collapsed && "lg:hidden")}>{label}</span>
               {label === t.nav.approvals && badge ? (
-                <span className="ml-auto hidden rounded-full bg-signal/20 px-1.5 py-0.5 text-[11px] font-semibold text-signal sm:inline">
+                <span
+                  className={cn(
+                    "absolute -top-1 -right-1 rounded-full bg-signal/20 px-1.5 py-0.5 text-[11px] font-semibold text-signal",
+                    "lg:static lg:ml-auto lg:inline",
+                    collapsed && "lg:hidden",
+                  )}
+                >
                   {badge}
                 </span>
               ) : null}
@@ -61,8 +93,13 @@ export function AppShell({
           ))}
         </nav>
 
-        <div className="hidden lg:mt-auto lg:block">
-          <div className="rounded-2xl border border-sidebar-border bg-background/40 p-4">
+        <div className="mt-auto flex flex-col gap-3 hidden lg:block">
+          <div
+            className={cn(
+              "rounded-2xl border border-sidebar-border bg-background/40 p-4",
+              collapsed && "lg:hidden",
+            )}
+          >
             <p className="text-xs font-medium text-foreground">{t.sidebar.workingQuietly}</p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
               {t.sidebar.handledToday(badge ?? 0)}
@@ -71,6 +108,15 @@ export function AppShell({
           <div className="mt-2 flex items-center justify-end gap-1">
             <LanguageToggle />
             <ThemeToggle />
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="inline-flex items-center justify-center rounded-xl p-2 text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-pressed={collapsed}
+            >
+              {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+            </button>
           </div>
         </div>
       </aside>
