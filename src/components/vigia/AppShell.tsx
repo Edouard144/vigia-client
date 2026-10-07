@@ -73,7 +73,10 @@ export function AppShell({
               inactiveProps={{
                 className: "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
               }}
-              className="group relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors"
+              className={cn(
+                "group relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
+                collapsed && "lg:px-2 lg:justify-center",
+              )}
               title={label}
             >
               <Icon className="size-4 shrink-0" strokeWidth={1.75} />
